@@ -1,74 +1,99 @@
-const express = require('express');
-const { moviesMock } = require('../utils/mocks/movies');
+const express = require("express");
+const MoviesServices = require('../services/movies');
+
+const {
+  movieIdSchema,
+  createMovieSchema,
+  updateMovieSchema,
+} = require('../utils/schemas/movies');
+
+const validationHandler = require('../utils/middleware/validationHandler');
+
+const cacheResponse = require('../utils/cacheResponse');
+const { FIVE_MINUTES_IN_SECONDS, SIXTY_MINUTES_IN_SECONDS } = require('../utils/time');
 
 function moviesApi(app) {
   const router = express.Router();
-  app.use('/api/movies', router);
+  app.use("/api/movies", router);
 
-  router.get('/', async (req, res, next) => {
+  const moviesService = new MoviesServices();
+
+  router.get("/", async function (req, res, next) {
+    cacheResponse(res, FIVE_MINUTES_IN_SECONDS);
+    const { tags } = req.query;
     try {
-      const movies = await Promise.resolve(moviesMock);
+      const movies = await moviesService.getMovies({ tags });
 
       res.status(200).json({
         data: movies,
         message: 'movies listed'
-      });
-    } catch (err) {
-      next(err);
+      })
+    } catch (error) {
+      next(error);
     }
-  });
+  })
 
-  router.get('/:movieId', async (req, res, next) => {
+  // Obtener movie por id
+  router.get("/:movieId", validationHandler({ movieId: movieIdSchema }, 'params'), async function (req, res, next) {
+    cacheResponse(res, SIXTY_MINUTES_IN_SECONDS);
+    const { movieId } = req.params;
     try {
-      const movies = await Promise.resolve(moviesMock[0]);
-
+      const movies = await moviesService.getMovie({ movieId });
       res.status(200).json({
         data: movies,
-        message: 'movie retrived'
-      });
-    } catch (err) {
-      next(err);
+        message: 'movies retrieved'
+      })
+    } catch (error) {
+      next(error);
     }
-  });
+  })
 
-  router.post('/', async (req, res, next) => {
+  // create
+  router.post("/", validationHandler(createMovieSchema), async function (req, res, next) {
+    const { body: movie } = req;
     try {
-      const createdMovieId = await Promise.resolve(moviesMock[0].id);
-
+      const createdMovieId = await moviesService.createMovie({ movie })
       res.status(201).json({
         data: createdMovieId,
         message: 'movie created'
-      });
-    } catch (err) {
-      next(err);
+      })
+    } catch (error) {
+      next(error);
     }
-  });
+  })
 
-  router.put('/:movieId', async (req, res, next) => {
+  // PUT - actualizar
+  router.put("/:movieId", validationHandler({ movieId: movieIdSchema }, 'params'), validationHandler(updateMovieSchema), async function (req, res, next) {
+    const { movieId } = req.params;
+    const { body: movie } = req;
     try {
-      const updateMovieId = await Promise.resolve(moviesMock[0].id);
-
+      const updatedMovieId = await moviesService.updateMovie({ movieId, movie })
       res.status(200).json({
-        data: updateMovieId,
+        data: updatedMovieId,
         message: 'movie updated'
-      });
-    } catch (err) {
-      next(err);
+      })
+    } catch (error) {
+      next(error);
     }
-  });
+  })
 
-  router.delete('/:movieId', async (req, res, next) => {
+  // delete
+  router.delete("/:movieId", validationHandler({ movieId: movieIdSchema }, 'params'), async function (req, res, next) {
+    const { movieId } = req.params;
+
     try {
-      const deleteMovieId = await Promise.resolve(moviesMock[0].id);
-
+      const deleteMovieId = await moviesService.deletedMovie({ movieId })
       res.status(200).json({
         data: deleteMovieId,
-        message: 'movie deleted'
-      });
-    } catch (err) {
-      next(err);
+        message: 'movies deleted'
+      })
+    } catch (error) {
+      next(error);
     }
-  });
+  })
+
 }
+// Ahora tenemos que exportarla, porque aquí estamos definiendo la ruta pero no la estamos usando
+// en nuestra aplicación de express
 
 module.exports = moviesApi;

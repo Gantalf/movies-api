@@ -1,0 +1,22 @@
+{
+  "name": "movie-api",
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.js"
+    }
+  ],
+  "env": {
+    "DB_USER": "@movies-api-user",
+    "DB_PASSWORD": "@movies-api-password",
+    "DB_HOST": "@movies-api-host",
+    "DB_NAME": "@movies-api-name"
+  }
+}
